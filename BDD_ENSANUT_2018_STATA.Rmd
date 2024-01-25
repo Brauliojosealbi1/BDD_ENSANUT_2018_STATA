@@ -1,0 +1,74 @@
+---
+title: "Carga y manejo de la Encuesta Nacional de Salud y Nutrición ENSANUT 2018" 
+by: Juan José Almeida
+output: html_notebook
+---
+
+-- link para descargar la BDD_ENSANUT_2018_STATA_2:
+
+https://www.ecuadorencifras.gob.ec/documentos/web-inec/Estadisticas_Sociales/ENSANUT/ENSANUT_2018/BDD_ENSANUT_2018_STATA_2.zip
+
+
+Limpieza de entorno de trabajo
+```{r}
+rm(list = ls())
+gc()
+```
+
+Carga de paquetes y definir directorio de trabajo
+```{r}
+pacman::p_load(readr, readxl, openxlsx, tidyverse, rstudioapi, statsr, skimr, haven, foreign, data.table, questionr, survey, jtools)
+
+set_wd <- function() {
+  current_path <- getActiveDocumentContext()$path 
+  setwd(dirname(current_path ))
+  }
+
+set_wd()
+```
+
+Importar las bases
+```{r}
+bdd_personas <- read_stata("BDD_ENSANUT_2018_STATA_2/BDD_ENSANUT_2018_STATA_2/1_BDD_ENS2018_f1_personas.dta")
+
+bdd_hogar <- read_stata("BDD_ENSANUT_2018_STATA_2/BDD_ENSANUT_2018_STATA_2/2_BDD_ENS2018_f1_hogar.dta")
+```
+
+(PASO OPCIONAL)
+Crear bases de referencia con los nombres de las varibales
+```{r}
+var_per = data.frame(names(bdd_personas))
+var_hog = data.frame(names(bdd_hogar))
+```
+
+Calcular los factores de expansión
+```{r}
+
+exp_per = svydesign(id=~upm,
+                    strata=~estrato,
+                    data=bdd_personas,
+                    weights=~fexp)
+
+exp_hog = svydesign(id=~upm,
+                    strata=~estrato,
+                    data=bdd_hogar,
+                    weights=~fexp)
+```
+
+Cálculo de estadísticas descriptivas
+```{r}
+#Procentaje de menores de 2 años que tienen desnutrición crónica
+svyciprop(~I(dcronica_2==1),
+          design = exp_per,
+          na.rm = TRUE,
+          method = "xlogit")
+
+#Porcentaje de hombres menores de 2 años con desnutrición crónica
+svyciprop(~I(dcronica_2==1),
+          design = subset(exp_per, sexo==1),
+          na.rm = TRUE,
+          method = "xlogit")  
+
+
+
+```
